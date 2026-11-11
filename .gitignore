@@ -1,0 +1,26 @@
+# 运行时生成
+config.json
+smoke_report.json
+logs/
+*.log
+
+# 虚拟环境
+.venv/
+.worktmp/
+.pip-cache/
+.tmp/
+
+# 打包产物
+build/
+dist/
+*.zip
+
+# 生成出来的素材包（make_pet.py 默认输出到 pets/）
+pets/
+
+# 本地工具（便携版 git 等）
+.tools/
+
+# Python 缓存
+__pycache__/
+*.pyc

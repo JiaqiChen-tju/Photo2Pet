@@ -1,0 +1,18 @@
+name: Feature request
+description: Suggest an improvement
+title: "[Feature] "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the user need or friction point.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to happen?
+      description: Explain the proposed behavior and any alternatives you considered.
+    validations:
+      required: true

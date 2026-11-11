@@ -1,0 +1,45 @@
+Photo2Pet
+=========
+
+Photo2Pet's current implementation is original project work released under
+the MIT License in LICENSE. It includes:
+  - make_pet.py: a single-photo asset pipeline (flood-fill white cutout,
+    narrow white gap cleanup, anchor inference, and Pillow-only bilinear
+    warping)
+  - external asset packs: the runtime can load any sprite/dance/expression
+    set via --assets or config.json, so a pet is no longer tied to one
+    character
+  - the bundled generic demo mascot, expressions, sprites, and dance frames,
+    drawn from basic shapes by tools/make_demo_assets.py
+  - the desktop-pet runtime, local web generator, documentation, and tests
+
+The project builds on the author's earlier MIT-licensed desktop-pet
+prototype. Some early runtime ideas (sprite normalization and part-based
+dance) were carried forward from that work. Its copyright notice is retained
+here as required by the MIT License:
+
+  Copyright (c) 2026
+
+Bundled demo artwork:
+  - The generic demo mascot, expressions, sprites, and dance frames are drawn
+    from basic shapes by tools/make_demo_assets.py. They are original project
+    artwork and are distributed under the MIT License in LICENSE.
+  - The project does not bundle third-party character or franchise artwork.
+    User-provided photos and generated asset packs remain the user's
+    responsibility and are not uploaded by the local tools.
+
+Third-party components:
+  - PySide6 / Qt / Shiboken6 (LGPLv3) - Qt for Python; Qt source code is
+    available from https://code.qt.io/cgit/qt/ and PySide6 source from
+    https://code.qt.io/cgit/pyside/pyside-setup.git
+  - Python (PSF-2.0) - bundled runtime in the Windows executable
+  - psutil (BSD-3-Clause)
+  - nvidia-ml-py (BSD-3-Clause; imported as pynvml)
+  - Pillow (MIT-CMU) - used by make_pet.py and the local web generator
+  - PyInstaller (GPL-2.0-or-later with bootloader exception) - build tool;
+    the bootloader is embedded in the Windows executable
+  - rembg (MIT) - optional, only for non-white backgrounds; not bundled
+
+The copyright notice above is retained as required by the MIT License. When
+redistributing the Windows portable build, include the full license texts for
+the bundled components listed above alongside this file.

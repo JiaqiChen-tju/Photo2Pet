@@ -1,0 +1,6 @@
+-r requirements.txt
+pyinstaller>=6
+
+# Optional cutout dependencies for photos without a white or transparent background.
+# rembg>=2
+# onnxruntime>=1.16

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>一张照片，生成你的桌宠</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2064%2064'%3E%3Ccircle%20cx%3D'32'%20cy%3D'30'%20r%3D'20'%20fill%3D'%232f8f6b'%2F%3E%3C%2Fsvg%3E">
+<style>
+  :root{
+    --ink:#16221c; --muted:#6b7c73; --line:#dde6e1; --bg:#f5f8f6;
+    --accent:#2f8f6b; --accent-soft:#e6f4ee; --danger:#c0392b;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; background:
+      radial-gradient(1200px 600px at 15% -10%, #e8f5ef 0%, transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    font:15px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  }
+  .wrap{max-width:760px; margin:0 auto; padding:48px 24px 72px}
+  h1{font-size:30px; line-height:1.25; margin:0 0 10px; letter-spacing:-.5px}
+  .sub{color:var(--muted); margin:0 0 28px}
+  .card{background:#fff; border:1px solid var(--line); border-radius:18px; padding:22px;
+        box-shadow:0 12px 32px -20px rgba(22,34,28,.35)}
+  .drop{
+    border:2px dashed #cfe0d6; border-radius:14px; background:#fbfdfc;
+    padding:34px 20px; text-align:center; cursor:pointer; transition:.18s;
+    outline:none;
+  }
+  .drop:hover,.drop:focus{border-color:var(--accent); background:var(--accent-soft)}
+  .drop.over{border-color:var(--accent); background:var(--accent-soft); transform:scale(.995)}
+  .drop strong{display:block; font-size:16px; margin-bottom:6px}
+  .drop span{color:var(--muted); font-size:13px}
+  .thumb{display:none; margin-top:16px; text-align:center}
+  .thumb img{max-height:220px; max-width:100%; border-radius:12px; border:1px solid var(--line)}
+  .thumb p{margin:8px 0 0; font-size:13px; color:var(--muted)}
+  .row{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:18px}
+  label{display:block; font-size:13px; color:var(--muted); margin-bottom:6px}
+  input[type=text],select{
+    width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:10px;
+    background:#fff; font:inherit; color:var(--ink);
+  }
+  textarea{
+    width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:10px;
+    background:#fff; font:inherit; color:var(--ink); resize:vertical;
+  }
+  textarea:focus{outline:2px solid var(--accent-soft); border-color:var(--accent)}
+  .field{margin-top:18px}
+  .field .hint{display:block; margin-top:5px}
+  .help{margin:6px 0 0; padding:10px 12px; border-radius:10px;
+        background:#f5f8f6; color:var(--muted); font-size:12px}
+  .help p{margin:0 0 5px}
+  .help p:last-child{margin-bottom:0}
+  .expression-controls{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+  .secondary{padding:8px 12px; border:1px solid var(--line); background:#fff;
+             color:var(--ink); font-size:13px}
+  .file-list{margin:8px 0 0; padding:0; list-style:none; color:var(--muted); font-size:13px}
+  .file-list li{display:flex; justify-content:space-between; align-items:center; gap:10px;
+                padding:5px 0; border-bottom:1px solid var(--line)}
+  .file-list button{padding:3px 8px; background:transparent; color:var(--danger); font-size:12px}
+  input[type=text]:focus,select:focus{outline:2px solid var(--accent-soft); border-color:var(--accent)}
+  details{margin-top:14px}
+  summary{cursor:pointer; font-size:13px; color:var(--muted)}
+  details .row{margin-top:10px}
+  .actions{display:flex; gap:12px; align-items:center; margin-top:24px}
+  button{
+    appearance:none; border:0; border-radius:11px; padding:12px 20px; font:inherit;
+    font-weight:600; cursor:pointer; background:var(--accent); color:#fff; transition:.15s;
+  }
+  button:hover{filter:brightness(1.06)}
+  button:disabled{opacity:.55; cursor:progress}
+  .hint{font-size:12px; color:var(--muted)}
+  .status{margin-top:18px; min-height:22px; font-size:14px}
+  .status.err{color:var(--danger)}
+  .status.ok{color:var(--accent)}
+  .result{display:none; margin-top:18px; padding:16px; border-radius:12px;
+          background:var(--accent-soft); border:1px solid #cfe8dc}
+  .result a{color:var(--accent); font-weight:700}
+  .result code{font-size:12px; color:var(--muted)}
+  .tips{margin:34px 0 0; padding-left:18px; color:var(--muted); font-size:13px}
+  .tips li{margin-bottom:6px}
+  footer{margin-top:32px; font-size:12px; color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>一张照片，生成你的桌宠</h1>
+  <p class="sub">上传一张正面、背景干净的图，这里会生成整套桌宠素材包（三视图 + 三档尺寸 + 舞蹈帧 + 预览），下载后配合桌宠程序即用。</p>
+
+  <div class="card">
+    <div class="drop" id="drop" tabindex="0" role="button">
+      <strong>点击选择图片，或把图拖到这里</strong>
+      <span>支持 png / jpg / webp，建议白底、单主体、全身完整、不超过 20MB</span>
+    </div>
+    <div class="thumb" id="thumb"><img id="preview" alt="预览"><p id="fname"></p></div>
+
+    <div class="row">
+      <div>
+        <label for="name">桌宠名字</label>
+        <input id="name" type="text" maxlength="24" placeholder="我的桌宠">
+      </div>
+      <div>
+        <label for="frames">舞蹈帧数</label>
+        <select id="frames">
+          <option value="8">8 帧（轻量）</option>
+          <option value="12">12 帧</option>
+          <option value="16" selected>16 帧（推荐）</option>
+          <option value="24">24 帧（更顺滑）</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="lines">给你的桌宠定制台词吧</label>
+      <textarea id="lines" rows="4" placeholder="给你的桌宠定制台词吧"></textarea>
+      <span class="hint">每行一句，可填写任意数量；留空时桌宠不会随机弹出台词。</span>
+    </div>
+
+    <div class="field">
+      <label for="expressions">上传这个 IP 的其他表情图（可多选）</label>
+      <div class="expression-controls">
+        <button class="secondary" id="pick-expressions" type="button">选择表情图片</button>
+        <span class="hint" id="expression-hint">支持 PNG、JPG、WEBP、BMP；最多 20 张，每张不超过 20MB。</span>
+      </div>
+      <input id="expressions" type="file" accept="image/png,image/jpeg,image/webp,image/bmp" multiple hidden>
+      <ul class="file-list" id="expression-list"></ul>
+    </div>
+
+    <details>
+      <summary>高级选项</summary>
+      <div class="row">
+        <div>
+          <label for="cutout">抠图方式</label>
+          <select id="cutout">
+            <option value="auto" selected>自动（白底优先）</option>
+            <option value="white">强制按白底抠</option>
+            <option value="alpha">图本身已透明</option>
+          </select>
+        </div>
+        <div>
+          <label for="eyes">眼睛坐标（可选，让桌宠眨眼）</label>
+          <input id="eyes" type="text" placeholder="例如：70,120,130,120">
+          <div class="help">
+            <p>眼睛坐标就是角色正面图上左眼、右眼中心的位置，填好后舞蹈时会眨眼。不设置也不影响生成。</p>
+            <p>请看素材包里的 <code>sprite_preview.png</code>：从图片左上角开始，向右数是 X，向下数是 Y；图片高为 340 像素。格式为“左眼X,左眼Y,右眼X,右眼Y”。</p>
+            <p>例如 <code>70,120,130,120</code> 表示左眼在 (70,120)、右眼在 (130,120)。不确定时留空即可；也可以先生成一次，看预览图再填写并重新生成。</p>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <div class="actions">
+      <button id="go" disabled>生成素材包</button>
+      <span class="hint">生成在本机完成，照片不会离开这台电脑。</span>
+    </div>
+    <div class="status" id="status"></div>
+
+    <div class="result" id="result">
+      <div>打包完成：<a id="dl" href="#">下载素材包</a></div>
+      <div><code id="meta"></code></div>
+    </div>
+  </div>
+
+  <ul class="tips">
+    <li>照片越干净越好：纯色（最好是白色）背景、主体居中、别被裁掉手脚。</li>
+    <li>两条腿之间如果有白缝，会被自动清理；大面积白色身体不会被误删。</li>
+    <li>表情图的文件名会成为右键菜单中的表情名称；启动桌宠后右键选择「切换表情」即可使用。</li>
+    <li><strong>怎么运行桌宠？</strong>先从项目 GitHub 页面的 Releases 下载并解压“Windows 便携版”；再把本次下载的素材包 ZIP 解压成文件夹，放到桌宠程序旁边；最后双击素材包文件夹里的“启动桌宠.bat”。不用输入命令。便携版尚未发布时，需要先运行项目源码中的桌宠程序。</li>
+  </ul>
+  <footer>Photo2Pet · 网页版与命令行版共用同一套 <code>make_pet.py</code></footer>
+</div>
+
+<script>
+const drop = document.getElementById('drop');
+const fileInput = document.createElement('input');
+fileInput.type = 'file';
+fileInput.accept = 'image/png,image/jpeg,image/webp,image/bmp';
+fileInput.style.display = 'none';
+fileInput.id = 'photo-input';
+document.body.appendChild(fileInput);
+let picked = null;
+let expressionFiles = [];
+const MAX_EXPRESSION_FILES = 20;
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
+const MAX_REQUEST_BYTES = 100 * 1024 * 1024;
+
+function setFile(file){
+  if(!file) return;
+  if(!file.type.startsWith('image/')){ showErr('请选择图片文件'); return; }
+  if(file.size > 20*1024*1024){ showErr('图片超过 20MB 了'); return; }
+  picked = file;
+  document.getElementById('preview').src = URL.createObjectURL(file);
+  document.getElementById('thumb').style.display = 'block';
+  document.getElementById('fname').textContent = file.name + ' · ' + (file.size/1024).toFixed(0) + ' KB';
+  document.getElementById('go').disabled = false;
+  setStatus('');
+  document.getElementById('result').style.display = 'none';
+  renderExpressions();
+}
+
+drop.addEventListener('click', () => fileInput.click());
+drop.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' ') fileInput.click(); });
+fileInput.addEventListener('change', () => setFile(fileInput.files[0]));
+['dragenter','dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => setFile(e.dataTransfer.files[0]));
+
+const expressionInput = document.getElementById('expressions');
+document.getElementById('pick-expressions').addEventListener('click', () => expressionInput.click());
+expressionInput.addEventListener('change', () => {
+  const incoming = Array.from(expressionInput.files);
+  expressionInput.value = '';
+  for(const file of incoming){
+    if(!file.type.startsWith('image/') && !/\.(png|jpe?g|webp|bmp)$/i.test(file.name)){
+      showErr('表情图请选择 PNG、JPG、WEBP 或 BMP 图片');
+      continue;
+    }
+    if(file.size > MAX_IMAGE_BYTES){
+      showErr(file.name + ' 超过 20MB');
+      continue;
+    }
+    if(expressionFiles.length >= MAX_EXPRESSION_FILES){
+      showErr('表情图片最多选择 ' + MAX_EXPRESSION_FILES + ' 张');
+      break;
+    }
+    if(expressionFiles.some(item => item.name.toLocaleLowerCase() === file.name.toLocaleLowerCase())){
+      showErr('表情图片文件名重复：' + file.name);
+      continue;
+    }
+    expressionFiles.push(file);
+  }
+  renderExpressions();
+});
+
+function renderExpressions(){
+  const list = document.getElementById('expression-list');
+  list.replaceChildren();
+  expressionFiles.forEach((file, index) => {
+    const item = document.createElement('li');
+    const label = document.createElement('span');
+    label.textContent = file.name + ' · ' + (file.size/1024).toFixed(0) + ' KB';
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.textContent = '移除';
+    remove.setAttribute('aria-label', '移除 ' + file.name);
+    remove.addEventListener('click', () => {
+      expressionFiles.splice(index, 1);
+      renderExpressions();
+    });
+    item.append(label, remove);
+    list.appendChild(item);
+  });
+  const total = expressionFiles.reduce((sum, file) => sum + file.size, picked ? picked.size : 0);
+  document.getElementById('expression-hint').textContent =
+    expressionFiles.length + ' 张表情图 · 图片总大小 ' + (total/1024/1024).toFixed(1) +
+    ' MB（总上传上限 100MB）';
+}
+
+function setStatus(text, cls){ const s = document.getElementById('status'); s.textContent = text; s.className = 'status' + (cls ? ' ' + cls : ''); }
+function showErr(t){ setStatus(t, 'err'); }
+
+document.getElementById('go').addEventListener('click', async () => {
+  if(!picked) return;
+  const btn = document.getElementById('go');
+  btn.disabled = true;
+  setStatus('正在生成，大约几秒……');
+  const fd = new FormData();
+  fd.append('photo', picked);
+  fd.append('name', document.getElementById('name').value.trim());
+  fd.append('lines', document.getElementById('lines').value);
+  fd.append('frames', document.getElementById('frames').value);
+  fd.append('cutout', document.getElementById('cutout').value);
+  fd.append('eyes', document.getElementById('eyes').value.trim());
+  const totalBytes = picked.size + expressionFiles.reduce((sum, file) => sum + file.size, 0);
+  if(totalBytes > MAX_REQUEST_BYTES){
+    showErr('照片与表情图片总大小不能超过 100MB');
+    btn.disabled = false;
+    return;
+  }
+  expressionFiles.forEach((file, index) => fd.append('expression_' + index, file));
+  try{
+    const res = await fetch('/api/build', { method:'POST', body: fd });
+    if(!res.ok){
+      let msg = '生成失败（' + res.status + '）';
+      try{ const j = await res.json(); if(j.error) msg = j.error; }catch(_){}
+      throw new Error(msg);
+    }
+    const blob = await res.blob();
+    const cd = res.headers.get('Content-Disposition') || '';
+    const m = cd.match(/filename\*=UTF-8''([^;]+)/);
+    const name = m ? decodeURIComponent(m[1]) : 'pet-pack.zip';
+    const url = URL.createObjectURL(blob);
+    const a = document.getElementById('dl');
+    a.href = url; a.download = name;
+    const meta = [];
+    const size = res.headers.get('X-Pet-Size'); if(size) meta.push('精灵 ' + size);
+    const frames = res.headers.get('X-Pet-Frames'); if(frames) meta.push(frames + ' 帧舞蹈');
+    const expressions = res.headers.get('X-Pet-Expressions'); if(expressions) meta.push(expressions + ' 个表情');
+    meta.push((blob.size/1024).toFixed(0) + ' KB');
+    document.getElementById('meta').textContent = meta.join(' · ');
+    document.getElementById('result').style.display = 'block';
+    setStatus('好了，点上面的链接下载 ↑', 'ok');
+    a.click();
+  }catch(err){
+    showErr(err.message || '生成失败');
+  }finally{
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
