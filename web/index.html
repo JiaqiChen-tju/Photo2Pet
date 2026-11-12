@@ -3,37 +3,54 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>一张照片，生成你的桌宠</title>
+<title>Photo2Pet · 让喜欢的角色住进桌面</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%2064%2064'%3E%3Ccircle%20cx%3D'32'%20cy%3D'30'%20r%3D'20'%20fill%3D'%232f8f6b'%2F%3E%3C%2Fsvg%3E">
 <style>
   :root{
-    --ink:#16221c; --muted:#6b7c73; --line:#dde6e1; --bg:#f5f8f6;
-    --accent:#2f8f6b; --accent-soft:#e6f4ee; --danger:#c0392b;
+    --ink:#18271f; --muted:#68776e; --line:#e1e9e3; --bg:#f3f7f3;
+    --accent:#27845e; --accent-dark:#1d6848; --accent-soft:#e8f4ec;
+    --danger:#b43e35; --surface:#fff;
   }
   *{box-sizing:border-box}
   body{
     margin:0; min-height:100vh; background:
-      radial-gradient(1200px 600px at 15% -10%, #e8f5ef 0%, transparent 60%),
+      radial-gradient(900px 500px at 8% -10%, #dff1e5 0%, transparent 68%),
+      radial-gradient(700px 420px at 100% 8%, #f5ead1 0%, transparent 70%),
       var(--bg);
     color:var(--ink);
     font:15px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
   }
-  .wrap{max-width:760px; margin:0 auto; padding:48px 24px 72px}
-  h1{font-size:30px; line-height:1.25; margin:0 0 10px; letter-spacing:-.5px}
-  .sub{color:var(--muted); margin:0 0 28px}
-  .card{background:#fff; border:1px solid var(--line); border-radius:18px; padding:22px;
-        box-shadow:0 12px 32px -20px rgba(22,34,28,.35)}
+  .wrap{max-width:980px; margin:0 auto; padding:32px 24px 72px}
+  .brandline{display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:34px}
+  .brand{display:flex; align-items:center; gap:10px; font-size:14px; font-weight:750; letter-spacing:.2px}
+  .brand-mark{display:grid; place-items:center; width:34px; height:34px; border-radius:11px;
+              background:var(--accent); color:#fff; font-size:19px; box-shadow:0 6px 16px #27845e38}
+  .release-link{color:var(--accent-dark); font-size:13px; font-weight:700; text-decoration:none}
+  .release-link:hover{text-decoration:underline}
+  h1{font-size:clamp(30px,5vw,46px); line-height:1.15; margin:0 0 12px; letter-spacing:-1.1px}
+  .sub{max-width:690px; color:var(--muted); margin:0 0 24px; font-size:16px}
+  .steps{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 24px}
+  .step{display:flex; align-items:center; gap:8px; padding:7px 12px; border:1px solid #dfe9e1;
+        border-radius:99px; background:#ffffffb8; color:var(--muted); font-size:12px; font-weight:650}
+  .step b{display:grid; place-items:center; width:21px; height:21px; border-radius:50%;
+          background:var(--accent-soft); color:var(--accent-dark); font-size:11px}
+  .card{background:var(--surface); border:1px solid #e3ebe5; border-radius:22px; padding:clamp(18px,3vw,30px);
+        box-shadow:0 24px 60px -42px rgba(22,48,32,.45)}
+  .section-title{margin:0 0 5px; font-size:18px}
+  .section-subtitle{margin:0 0 18px; color:var(--muted); font-size:13px}
   .drop{
-    border:2px dashed #cfe0d6; border-radius:14px; background:#fbfdfc;
+    border:2px dashed #c9dbce; border-radius:17px; background:#f9fcf9;
     padding:34px 20px; text-align:center; cursor:pointer; transition:.18s;
     outline:none;
   }
   .drop:hover,.drop:focus{border-color:var(--accent); background:var(--accent-soft)}
   .drop.over{border-color:var(--accent); background:var(--accent-soft); transform:scale(.995)}
-  .drop strong{display:block; font-size:16px; margin-bottom:6px}
+  .drop strong{display:block; font-size:17px; margin-bottom:6px}
   .drop span{color:var(--muted); font-size:13px}
-  .thumb{display:none; margin-top:16px; text-align:center}
-  .thumb img{max-height:220px; max-width:100%; border-radius:12px; border:1px solid var(--line)}
+  .thumb{display:none; margin-top:16px; text-align:center; padding:16px; border:1px solid var(--line);
+         border-radius:15px; background:linear-gradient(135deg,#fbfcfb,#f3f7f3)}
+  .thumb img{max-height:260px; max-width:100%; border-radius:12px; border:1px solid var(--line);
+             object-fit:contain; background-color:#fff}
   .thumb p{margin:8px 0 0; font-size:13px; color:var(--muted)}
   .row{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:18px}
   label{display:block; font-size:13px; color:var(--muted); margin-bottom:6px}
@@ -63,32 +80,81 @@
   details{margin-top:14px}
   summary{cursor:pointer; font-size:13px; color:var(--muted)}
   details .row{margin-top:10px}
-  .actions{display:flex; gap:12px; align-items:center; margin-top:24px}
+  .actions{display:flex; gap:14px; align-items:center; margin-top:24px; flex-wrap:wrap}
   button{
     appearance:none; border:0; border-radius:11px; padding:12px 20px; font:inherit;
-    font-weight:600; cursor:pointer; background:var(--accent); color:#fff; transition:.15s;
+    font-weight:700; cursor:pointer; background:var(--accent); color:#fff; transition:.15s;
+    box-shadow:0 7px 18px #27845e26;
   }
-  button:hover{filter:brightness(1.06)}
+  button:hover{filter:brightness(1.04); transform:translateY(-1px)}
   button:disabled{opacity:.55; cursor:progress}
   .hint{font-size:12px; color:var(--muted)}
   .status{margin-top:18px; min-height:22px; font-size:14px}
   .status.err{color:var(--danger)}
   .status.ok{color:var(--accent)}
-  .result{display:none; margin-top:18px; padding:16px; border-radius:12px;
-          background:var(--accent-soft); border:1px solid #cfe8dc}
-  .result a{color:var(--accent); font-weight:700}
-  .result code{font-size:12px; color:var(--muted)}
+  .result{display:none; margin-top:24px; padding:clamp(16px,3vw,24px); border-radius:18px;
+          background:linear-gradient(145deg,#f3faf4,#f8f8ef); border:1px solid #d8e9da;
+          animation:arrive .35s ease-out}
+  @keyframes arrive{from{opacity:0; transform:translateY(8px)}to{opacity:1; transform:translateY(0)}}
+  .result-head{display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:16px}
+  .result-head h2{margin:5px 0 2px; font-size:20px}
+  .result-head p{margin:0; color:var(--muted); font-size:13px}
+  .success-badge{display:inline-flex; align-items:center; gap:6px; color:var(--accent-dark);
+                 font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase}
+  .preview-grid{display:grid; grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr); gap:14px}
+  .preview-card{margin:0; padding:12px; border:1px solid #e1e9e1; border-radius:14px; background:#fff}
+  .preview-stage{display:grid; place-items:center; min-height:220px; border-radius:10px;
+                 background-color:#f5f7f4;
+                 background-image:linear-gradient(45deg,#e9eee9 25%,transparent 25%),
+                   linear-gradient(-45deg,#e9eee9 25%,transparent 25%),
+                   linear-gradient(45deg,transparent 75%,#e9eee9 75%),
+                   linear-gradient(-45deg,transparent 75%,#e9eee9 75%);
+                 background-size:20px 20px; background-position:0 0,0 10px,10px -10px,-10px 0}
+  .preview-stage img{display:block; max-width:100%; max-height:330px; object-fit:contain}
+  .preview-card:nth-child(2) .preview-stage{background:#fff; background-image:none}
+  #dance-result-preview{width:100%; max-height:330px}
+  .preview-card figcaption{padding:9px 3px 0; color:var(--muted); font-size:12px}
+  .result-meta{margin-top:14px; color:var(--muted); font-size:12px}
+  .result-actions{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:16px}
+  .download-link{display:inline-flex; align-items:center; justify-content:center; gap:8px;
+                 padding:11px 16px; border-radius:11px; background:var(--accent); color:white;
+                 font-weight:750; text-decoration:none; box-shadow:0 7px 18px #27845e26}
+  .download-link:hover{background:var(--accent-dark)}
+  .result-actions p{margin:0; color:var(--muted); font-size:12px}
   .tips{margin:34px 0 0; padding-left:18px; color:var(--muted); font-size:13px}
   .tips li{margin-bottom:6px}
   footer{margin-top:32px; font-size:12px; color:var(--muted)}
+  .progress{display:none; height:5px; overflow:hidden; border-radius:9px; background:#e9efe9; margin-top:14px}
+  .progress span{display:block; width:36%; height:100%; border-radius:9px; background:var(--accent);
+                 animation:loading 1.15s ease-in-out infinite alternate}
+  @keyframes loading{from{transform:translateX(-20%)}to{transform:translateX(210%)}}
+  @media(max-width:640px){
+    .wrap{padding:22px 14px 48px}
+    .brandline{margin-bottom:28px}
+    .sub{font-size:14px}
+    .row,.preview-grid{grid-template-columns:1fr}
+    .preview-stage{min-height:180px}
+    .result-head{display:block}
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>一张照片，生成你的桌宠</h1>
-  <p class="sub">上传一张正面、背景干净的图，这里会生成整套桌宠素材包（三视图 + 三档尺寸 + 舞蹈帧 + 预览），下载后配合桌宠程序即用。</p>
+  <div class="brandline">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">✦</span> Photo2Pet <span class="hint">本地角色工坊</span></div>
+    <a class="release-link" href="https://github.com/JiaqiChen-tju/Photo2Pet/releases/latest">Windows 便携版 ↗</a>
+  </div>
+  <h1>让喜欢的角色，住进桌面</h1>
+  <p class="sub">选一张角色图，定制名字、台词和表情。生成过程在本机完成；先看预览，满意后再下载桌宠素材包。</p>
+  <div class="steps" aria-label="使用步骤">
+    <span class="step"><b>1</b> 选择图片</span>
+    <span class="step"><b>2</b> 定制角色</span>
+    <span class="step"><b>3</b> 预览并下载</span>
+  </div>
 
   <div class="card">
+    <h2 class="section-title">从一张正面图开始</h2>
+    <p class="section-subtitle">白底或透明背景效果最好；不用注册，图片不会上传到云端。</p>
     <div class="drop" id="drop" tabindex="0" role="button">
       <strong>点击选择图片，或把图拖到这里</strong>
       <span>支持 png / jpg / webp，建议白底、单主体、全身完整、不超过 20MB</span>
@@ -118,7 +184,7 @@
     </div>
 
     <div class="field">
-      <label for="expressions">上传这个 IP 的其他表情图（可多选）</label>
+      <label for="expressions">上传角色的其他表情图（可多选）</label>
       <div class="expression-controls">
         <button class="secondary" id="pick-expressions" type="button">选择表情图片</button>
         <span class="hint" id="expression-hint">支持 PNG、JPG、WEBP、BMP；最多 20 张，每张不超过 20MB。</span>
@@ -152,13 +218,34 @@
 
     <div class="actions">
       <button id="go" disabled>生成素材包</button>
-      <span class="hint">生成在本机完成，照片不会离开这台电脑。</span>
+      <span class="hint">通常需要几秒 · 全程本机处理</span>
     </div>
-    <div class="status" id="status"></div>
+    <div class="progress" id="progress" aria-hidden="true"><span></span></div>
+    <div class="status" id="status" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <div class="result" id="result">
-      <div>打包完成：<a id="dl" href="#">下载素材包</a></div>
-      <div><code id="meta"></code></div>
+      <div class="result-head">
+        <div>
+          <span class="success-badge">✓ 已生成</span>
+          <h2>预览你的新桌宠</h2>
+          <p>检查角色正面与舞蹈帧，准备好后下载素材包。</p>
+        </div>
+      </div>
+      <div class="preview-grid">
+        <figure class="preview-card">
+          <div class="preview-stage"><img id="pet-result-preview" alt="生成的桌宠正面预览"></div>
+          <figcaption>桌宠外观 · 透明背景</figcaption>
+        </figure>
+        <figure class="preview-card">
+          <div class="preview-stage"><img id="dance-result-preview" alt="生成的舞蹈动作预览"></div>
+          <figcaption>舞蹈动作 · 素材包中包含全部动画帧</figcaption>
+        </figure>
+      </div>
+      <div class="result-meta" id="meta"></div>
+      <div class="result-actions">
+        <a id="dl" class="download-link" href="#">下载素材包 <span aria-hidden="true">↓</span></a>
+        <p>下载链接有效 15 分钟。解压后放到 Photo2Pet.exe 旁边，双击「启动桌宠.bat」。</p>
+      </div>
     </div>
   </div>
 
@@ -166,9 +253,9 @@
     <li>照片越干净越好：纯色（最好是白色）背景、主体居中、别被裁掉手脚。</li>
     <li>两条腿之间如果有白缝，会被自动清理；大面积白色身体不会被误删。</li>
     <li>表情图的文件名会成为右键菜单中的表情名称；启动桌宠后右键选择「切换表情」即可使用。</li>
-    <li><strong>怎么运行桌宠？</strong>先从项目 GitHub 页面的 Releases 下载并解压“Windows 便携版”；再把本次下载的素材包 ZIP 解压成文件夹，放到桌宠程序旁边；最后双击素材包文件夹里的“启动桌宠.bat”。不用输入命令。便携版尚未发布时，需要先运行项目源码中的桌宠程序。</li>
+    <li><strong>怎么运行桌宠？</strong>从 Releases 下载 Windows 便携版，解压后双击 Photo2Pet-Generator.exe 生成素材包；再把素材包解压到 Photo2Pet.exe 旁边，双击素材包里的「启动桌宠.bat」。整个流程不需要安装 Python。</li>
   </ul>
-  <footer>Photo2Pet · 网页版与命令行版共用同一套 <code>make_pet.py</code></footer>
+  <footer>Photo2Pet · 图片仅在这台电脑处理 · 网页版与命令行版共用同一套 <code>make_pet.py</code></footer>
 </div>
 
 <script>
@@ -180,6 +267,7 @@ fileInput.style.display = 'none';
 fileInput.id = 'photo-input';
 document.body.appendChild(fileInput);
 let picked = null;
+let pickedPreviewUrl = null;
 let expressionFiles = [];
 const MAX_EXPRESSION_FILES = 20;
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
@@ -190,12 +278,15 @@ function setFile(file){
   if(!file.type.startsWith('image/')){ showErr('请选择图片文件'); return; }
   if(file.size > 20*1024*1024){ showErr('图片超过 20MB 了'); return; }
   picked = file;
-  document.getElementById('preview').src = URL.createObjectURL(file);
+  if(pickedPreviewUrl) URL.revokeObjectURL(pickedPreviewUrl);
+  pickedPreviewUrl = URL.createObjectURL(file);
+  document.getElementById('preview').src = pickedPreviewUrl;
   document.getElementById('thumb').style.display = 'block';
   document.getElementById('fname').textContent = file.name + ' · ' + (file.size/1024).toFixed(0) + ' KB';
   document.getElementById('go').disabled = false;
   setStatus('');
   document.getElementById('result').style.display = 'none';
+  document.getElementById('progress').style.display = 'none';
   renderExpressions();
 }
 
@@ -262,9 +353,18 @@ function showErr(t){ setStatus(t, 'err'); }
 
 document.getElementById('go').addEventListener('click', async () => {
   if(!picked) return;
+  const totalBytes = picked.size + expressionFiles.reduce((sum, file) => sum + file.size, 0);
+  if(totalBytes > MAX_REQUEST_BYTES){
+    showErr('照片与表情图片总大小不能超过 100MB');
+    return;
+  }
   const btn = document.getElementById('go');
   btn.disabled = true;
-  setStatus('正在生成，大约几秒……');
+  const originalLabel = btn.textContent;
+  btn.textContent = '正在生成…';
+  document.getElementById('progress').style.display = 'block';
+  document.getElementById('result').style.display = 'none';
+  setStatus('正在本机生成素材与预览，请稍候…');
   const fd = new FormData();
   fd.append('photo', picked);
   fd.append('name', document.getElementById('name').value.trim());
@@ -272,40 +372,33 @@ document.getElementById('go').addEventListener('click', async () => {
   fd.append('frames', document.getElementById('frames').value);
   fd.append('cutout', document.getElementById('cutout').value);
   fd.append('eyes', document.getElementById('eyes').value.trim());
-  const totalBytes = picked.size + expressionFiles.reduce((sum, file) => sum + file.size, 0);
-  if(totalBytes > MAX_REQUEST_BYTES){
-    showErr('照片与表情图片总大小不能超过 100MB');
-    btn.disabled = false;
-    return;
-  }
   expressionFiles.forEach((file, index) => fd.append('expression_' + index, file));
   try{
     const res = await fetch('/api/build', { method:'POST', body: fd });
+    let data;
+    try{ data = await res.json(); }
+    catch(_){ throw new Error('服务器返回了无法识别的结果，请重试'); }
     if(!res.ok){
-      let msg = '生成失败（' + res.status + '）';
-      try{ const j = await res.json(); if(j.error) msg = j.error; }catch(_){}
-      throw new Error(msg);
+      throw new Error(data.error || '生成失败（' + res.status + '）');
     }
-    const blob = await res.blob();
-    const cd = res.headers.get('Content-Disposition') || '';
-    const m = cd.match(/filename\*=UTF-8''([^;]+)/);
-    const name = m ? decodeURIComponent(m[1]) : 'pet-pack.zip';
-    const url = URL.createObjectURL(blob);
+    if(!data.ok || !data.previews || !data.download_url) throw new Error('生成结果不完整，请重试');
     const a = document.getElementById('dl');
-    a.href = url; a.download = name;
-    const meta = [];
-    const size = res.headers.get('X-Pet-Size'); if(size) meta.push('精灵 ' + size);
-    const frames = res.headers.get('X-Pet-Frames'); if(frames) meta.push(frames + ' 帧舞蹈');
-    const expressions = res.headers.get('X-Pet-Expressions'); if(expressions) meta.push(expressions + ' 个表情');
-    meta.push((blob.size/1024).toFixed(0) + ' KB');
+    a.href = data.download_url; a.download = data.filename;
+    document.getElementById('pet-result-preview').src = data.previews.sprite_preview;
+    document.getElementById('dance-result-preview').src = data.previews.dance_preview;
+    const meta = ['精灵 ' + data.sprite_size, data.frames + ' 帧舞蹈',
+                  data.expressions + ' 个表情',
+                  (data.zip_size/1024).toFixed(0) + ' KB'];
     document.getElementById('meta').textContent = meta.join(' · ');
     document.getElementById('result').style.display = 'block';
-    setStatus('好了，点上面的链接下载 ↑', 'ok');
-    a.click();
+    setStatus('生成完成！预览满意后，点击「下载素材包」。', 'ok');
+    document.getElementById('result').scrollIntoView({ behavior:'smooth', block:'nearest' });
   }catch(err){
     showErr(err.message || '生成失败');
   }finally{
     btn.disabled = false;
+    btn.textContent = originalLabel;
+    document.getElementById('progress').style.display = 'none';
   }
 });
 </script>

@@ -9,10 +9,12 @@
     python web/app.py --no-browser   # 不自动开浏览器
 """
 import argparse
+import base64
 import io
 import json
 import os
 import re
+import secrets
 import shutil
 import sys
 import tempfile
@@ -23,6 +25,7 @@ import webbrowser
 import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import quote
+from urllib.request import build_opener, ProxyHandler
 
 
 def _configure_console():
@@ -36,8 +39,13 @@ def _configure_console():
 
 _configure_console()
 
-WEB_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(WEB_DIR)
+BUNDLE_ROOT = getattr(sys, "_MEIPASS", None)
+if getattr(sys, "frozen", False) and BUNDLE_ROOT:
+    ROOT = BUNDLE_ROOT
+    WEB_DIR = os.path.join(ROOT, "web")
+else:
+    WEB_DIR = os.path.dirname(os.path.abspath(__file__))
+    ROOT = os.path.dirname(WEB_DIR)
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
@@ -51,6 +59,10 @@ MAX_EXPRESSIONS = 20
 ALLOWED_EXT = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
 EXPRESSION_EXT = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
 BUILD_LOCK = threading.Lock()
+DOWNLOAD_CACHE_LOCK = threading.Lock()
+DOWNLOAD_CACHE = {}
+DOWNLOAD_CACHE_TTL = 15 * 60
+MAX_CACHED_DOWNLOADS = 3
 
 
 def parse_multipart(body, boundary):
@@ -100,7 +112,7 @@ def safe_expression_filename(filename):
 
 def build_pack(photo_bytes, filename, name, frames, cutout, eyes,
                lines=None, expression_files=None):
-    """生成素材包，返回 (zip 字节, 建议下载名, 报告)。"""
+    """生成素材包，返回 zip 字节、下载名、报告和内嵌预览图。"""
     ext = os.path.splitext(filename)[1].lower()
     if ext not in ALLOWED_EXT:
         raise ValueError(f"不支持的图片格式：{ext or '未知'}（请用 png/jpg/webp）")
@@ -134,6 +146,14 @@ def build_pack(photo_bytes, filename, name, frames, cutout, eyes,
             eyes=make_pet.parse_eyes(eyes) if eyes else None,
             expressions_dir=expr_dir, write_preview=True, lines=lines)
 
+        previews = {}
+        for preview_name, key in (
+                ("sprite_preview.png", "sprite_preview"),
+                ("preview.png", "dance_preview")):
+            with open(os.path.join(out, preview_name), "rb") as f:
+                previews[key] = "data:image/png;base64," + base64.b64encode(
+                    f.read()).decode("ascii")
+
         buf = io.BytesIO()
         with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
             for base, _, fns in os.walk(out):
@@ -142,9 +162,23 @@ def build_pack(photo_bytes, filename, name, frames, cutout, eyes,
                     arc = os.path.relpath(full, out).replace(os.sep, "/")
                     zf.write(full, arc)
         stem = safe_stem(display_name)
-        return buf.getvalue(), f"{stem}-素材包.zip", report
+        return buf.getvalue(), f"{stem}-素材包.zip", report, previews
     finally:
         shutil.rmtree(work, ignore_errors=True)
+
+
+def cache_download(blob, filename):
+    now = time.monotonic()
+    with DOWNLOAD_CACHE_LOCK:
+        expired = [key for key, value in DOWNLOAD_CACHE.items()
+                   if value[0] <= now]
+        for key in expired:
+            del DOWNLOAD_CACHE[key]
+        while len(DOWNLOAD_CACHE) >= MAX_CACHED_DOWNLOADS:
+            del DOWNLOAD_CACHE[next(iter(DOWNLOAD_CACHE))]
+        token = secrets.token_urlsafe(24)
+        DOWNLOAD_CACHE[token] = (now + DOWNLOAD_CACHE_TTL, blob, filename)
+    return token
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -177,8 +211,35 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(500, "index.html 缺失".encode("utf-8"))
         elif path == "/healthz":
             self._json(200, {"ok": True, "app": "Photo2Pet web"})
+        elif path.startswith("/api/download/"):
+            token = path.removeprefix("/api/download/")
+            if not re.fullmatch(r"[A-Za-z0-9_-]+", token):
+                self._json(404, {"ok": False, "error": "下载链接无效或已过期"})
+                return
+            with DOWNLOAD_CACHE_LOCK:
+                entry = DOWNLOAD_CACHE.get(token)
+                if entry and entry[0] <= time.monotonic():
+                    del DOWNLOAD_CACHE[token]
+                    entry = None
+            if not entry:
+                self._json(404, {"ok": False, "error": "下载链接无效或已过期，请重新生成"})
+                return
+            _, blob, download_name = entry
+            self._send_download(blob, download_name)
         else:
             self._send(404, "not found".encode("utf-8"))
+
+    def _send_download(self, blob, download_name):
+        self.send_response(200)
+        self.send_header("Content-Type", "application/zip")
+        self.send_header("Content-Length", str(len(blob)))
+        self.send_header(
+            "Content-Disposition",
+            "attachment; filename=\"pet-pack.zip\"; filename*=UTF-8''%s"
+            % quote(download_name))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(blob)
 
     def do_POST(self):
         if self.path.split("?")[0] != "/api/build":
@@ -240,7 +301,7 @@ class Handler(BaseHTTPRequestHandler):
 
         try:
             with BUILD_LOCK:
-                blob, download_name, report = build_pack(
+                blob, download_name, report, previews = build_pack(
                     data, fname, name, frames, cutout, eyes, lines, expression_files)
         except ValueError as e:
             self._json(400, {"ok": False, "error": str(e)})
@@ -250,20 +311,47 @@ class Handler(BaseHTTPRequestHandler):
             self._json(500, {"ok": False, "error": "生成失败，看看控制台里的报错"})
             return
 
-        self.send_response(200)
-        self.send_header("Content-Type", "application/zip")
-        self.send_header("Content-Length", str(len(blob)))
-        self.send_header(
-            "Content-Disposition",
-            "attachment; filename=\"pet-pack.zip\"; filename*=UTF-8''%s"
-            % quote(download_name))
-        self.send_header("X-Pet-Size", "%dx%d" % tuple(report["sprite_size"]))
-        self.send_header("X-Pet-Frames", str(report["frames"]))
-        self.send_header("X-Pet-Expressions", str(report["expressions"]))
-        self.end_headers()
-        self.wfile.write(blob)
+        token = cache_download(blob, download_name)
+        self._json(200, {
+            "ok": True,
+            "download_url": "/api/download/" + token,
+            "filename": download_name,
+            "sprite_size": "%dx%d" % tuple(report["sprite_size"]),
+            "frames": report["frames"],
+            "expressions": report["expressions"],
+            "zip_size": len(blob),
+            "previews": previews,
+        })
         self.log_message("packed %s (%d bytes) anchor=%s", download_name,
                          len(blob), report["anchors"])
+
+
+def smoke_test():
+    if not os.path.isfile(PAGE_PATH):
+        raise FileNotFoundError(f"生成器页面缺失：{PAGE_PATH}")
+    srv = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=srv.serve_forever, daemon=True)
+    thread.start()
+    try:
+        base = f"http://127.0.0.1:{srv.server_address[1]}"
+        opener = build_opener(ProxyHandler({}))
+        with opener.open(base + "/healthz", timeout=5) as response:
+            health = json.loads(response.read().decode("utf-8"))
+        if not health.get("ok"):
+            raise RuntimeError("生成器健康检查失败")
+        with opener.open(base + "/", timeout=5) as response:
+            page = response.read().decode("utf-8")
+        if 'id="pet-result-preview"' not in page:
+            raise RuntimeError("生成器页面预览控件缺失")
+    finally:
+        srv.shutdown()
+        srv.server_close()
+        thread.join()
+    print(json.dumps({
+        "ok": True,
+        "frozen": bool(getattr(sys, "frozen", False)),
+        "page": True,
+    }, ensure_ascii=True), flush=True)
 
 
 def main(argv=None):
@@ -271,7 +359,12 @@ def main(argv=None):
     ap.add_argument("--port", type=int, default=8000)
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--no-browser", action="store_true")
+    ap.add_argument("--smoke-test", action="store_true")
     args = ap.parse_args(argv)
+
+    if args.smoke_test:
+        smoke_test()
+        return
 
     srv = ThreadingHTTPServer((args.host, args.port), Handler)
     url = f"http://{args.host}:{srv.server_address[1]}/"

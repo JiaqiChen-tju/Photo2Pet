@@ -83,8 +83,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\build_exe.ps1 -Name 
    git push origin v0.1.0
    ```
 
-   `release.yml` 会自动打包 `dist/<仓库名>.exe`、压成 `<仓库名>-portable.zip`、
-   上传 artifact 并挂 Release（release notes 自动生成）。
+   `release.yml` 会自动打包桌宠程序与 `Photo2Pet-Generator.exe`，压成
+   `<仓库名>-portable.zip`，上传 artifact 并挂 Release（release notes 自动生成）。
 
 产物名来自 `github.event.repository.name`，所以仓库名字就是 exe 名字；
 `release.yml` 会将同一名称用于 exe 和便携 zip。
@@ -95,7 +95,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\build_exe.ps1 -Name 
 - **依赖许可**：核对 `NOTICE` 中第三方组件与实际打包内容一致，并检查 PySide6/Qt 的 LGPL 要求以及随 Release 分发时需要附带的许可材料。
 - **历史与内容**：检查所有将要推送的提交信息/邮箱、历史文件、截图、日志和配置；不要只检查当前工作树。不要上传个人照片、生成素材包、令牌或本机路径。
 - **干净环境复验**：按 README 从新克隆创建虚拟环境、安装依赖、运行单测和离屏自检；再实际启动一次桌宠并用示例图片走完生成流程。
-- **Release 验收**：推送版本 tag 后，检查 GitHub Actions 成功；下载便携 zip 和 `.sha256` 文件，验证哈希并确认压缩包中有 exe、使用说明、README、LICENSE 和 NOTICE。
+- **Release 验收**：推送版本 tag 后，检查 GitHub Actions 成功；下载便携 zip 和 `.sha256` 文件，验证哈希并确认压缩包中有桌宠 exe、`Photo2Pet-Generator.exe`、使用说明、README、LICENSE 和 NOTICE。启动生成器 exe 后确认本机网页可打开并能通过 `/healthz` 自检。
 - **仓库设置**：确认默认分支与 CI 触发分支一致，并允许 Release workflow 写入 Releases；保护默认分支并启用 Issues/Discussions（按项目需要）。
 
 ## 提交规范

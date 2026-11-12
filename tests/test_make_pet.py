@@ -187,10 +187,18 @@ class BuildTest(unittest.TestCase):
             launcher = f.read()
         self.assertIn('--assets "%ASSET_DIR%"', launcher)
         self.assertIn('"%~dp0..\\*.exe"', launcher)
+        self.assertIn('if /I not "%%~nE"=="Photo2Pet-Generator"', launcher)
 
         self.assertTrue(os.path.isfile(os.path.join(out, "preview.png")))
         self.assertEqual(report["frames"], 4)
         self.assertEqual(report["sprite_size"][1], make_pet.TARGET_H)
+
+    def test_preview_checkerboard_uses_neutral_colors(self):
+        frame = Image.new("RGBA", (30, 60), (20, 40, 60, 255))
+        preview = make_pet.preview_sheet([frame])
+        colors = preview.getcolors(preview.width * preview.height)
+        self.assertIn((245, 247, 245), [color for _, color in colors])
+        self.assertIn((225, 232, 226), [color for _, color in colors])
 
     def test_build_is_idempotent(self):
         photo = make_subject(os.path.join(self.tmp, "subject.png"))

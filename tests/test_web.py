@@ -96,13 +96,16 @@ class WebAppTest(unittest.TestCase):
         with urllib.request.urlopen(self.base + "/", timeout=20) as r:
             html = r.read().decode("utf-8")
         self.assertEqual(r.status, 200)
-        self.assertIn("生成你的桌宠", html)
+        self.assertIn("让喜欢的角色", html)
         self.assertIn("/api/build", html)
         self.assertIn("给你的桌宠定制台词吧", html)
         self.assertIn('id="expressions"', html)
         self.assertIn("multiple hidden", html)
         self.assertIn("从图片左上角开始", html)
         self.assertIn("启动桌宠.bat", html)
+        self.assertIn('id="pet-result-preview"', html)
+        self.assertIn('id="dance-result-preview"', html)
+        self.assertIn("download_url", html)
 
     def test_healthz(self):
         with urllib.request.urlopen(self.base + "/healthz", timeout=20) as r:
@@ -121,9 +124,21 @@ class WebAppTest(unittest.TestCase):
              "expression_0": ("开心.png", data),
              "expression_1": ("惊讶.png", data)})
         self.assertEqual(resp.status, 200)
-        self.assertIn("application/zip", resp.headers["Content-Type"])
-        self.assertEqual(resp.headers["X-Pet-Frames"], "8")
-        blob = resp.read()
+        self.assertIn("application/json", resp.headers["Content-Type"])
+        result = json.loads(resp.read().decode("utf-8"))
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["frames"], 8)
+        self.assertEqual(result["expressions"], 2)
+        self.assertEqual(int(result["sprite_size"].split("x")[1]), 340)
+        self.assertTrue(result["previews"]["sprite_preview"].startswith(
+            "data:image/png;base64,"))
+        self.assertTrue(result["previews"]["dance_preview"].startswith(
+            "data:image/png;base64,"))
+        download_url = urllib.request.urljoin(self.base + "/", result["download_url"])
+        with urllib.request.urlopen(download_url, timeout=60) as download:
+            self.assertIn("application/zip", download.headers["Content-Type"])
+            self.assertIn("filename*=UTF-8''", download.headers["Content-Disposition"])
+            blob = download.read()
         with zipfile.ZipFile(io.BytesIO(blob)) as zf:
             names = zf.namelist()
             self.assertIn("sprites/front.png", names)
@@ -142,7 +157,6 @@ class WebAppTest(unittest.TestCase):
             self.assertEqual(cfg["frames"], 8)
             self.assertEqual(cfg["asset_dir"], ".")
             self.assertEqual(cfg["lines"], ["第一句", "第二句", "第三句"])
-            self.assertEqual(resp.headers["X-Pet-Expressions"], "2")
 
     def test_upload_without_custom_content_has_no_old_dialogue_or_expressions(self):
         tmp = tempfile.mkdtemp(prefix="web_empty_", dir=TMP_BASE)
@@ -150,10 +164,22 @@ class WebAppTest(unittest.TestCase):
         with open(photo, "rb") as f:
             data = f.read()
         resp = self._post({"name": "无自定义内容"}, {"photo": ("p.png", data)})
-        with zipfile.ZipFile(io.BytesIO(resp.read())) as zf:
+        result = json.loads(resp.read().decode("utf-8"))
+        download_url = urllib.request.urljoin(self.base + "/", result["download_url"])
+        with urllib.request.urlopen(download_url, timeout=60) as download:
+            blob = download.read()
+        with zipfile.ZipFile(io.BytesIO(blob)) as zf:
             cfg = json.loads(zf.read("config.json").decode("utf-8"))
             self.assertEqual(cfg["lines"], [])
             self.assertFalse(any(n.startswith("assets/expressions/") for n in zf.namelist()))
+
+    def test_expired_or_unknown_download_is_rejected(self):
+        req = urllib.request.Request(self.base + "/api/download/not-a-token")
+        with self.assertRaises(urllib.request.HTTPError) as ctx:
+            urllib.request.urlopen(req, timeout=20)
+        self.assertEqual(ctx.exception.code, 404)
+        payload = json.loads(ctx.exception.read().decode("utf-8"))
+        self.assertIn("下载链接无效", payload["error"])
 
     def test_missing_photo_is_rejected(self):
         body = build_body({"name": "空"}, {})

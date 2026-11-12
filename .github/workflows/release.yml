@@ -33,12 +33,55 @@ jobs:
       - name: Build single-file exe
         run: python -m PyInstaller --noconfirm 桌宠.spec
 
+      - name: Smoke test desktop executable
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          $temp = Join-Path $PWD "build/generator-temp"
+          New-Item -ItemType Directory -Force -Path $temp | Out-Null
+          $env:TEMP = $temp
+          $env:TMP = $temp
+          $exe = Join-Path $PWD "dist/$env:EXE_NAME.exe"
+          & $exe --smoke-test
+          if ($LASTEXITCODE -ne 0) {
+            throw "The packaged desktop pet smoke test failed."
+          }
+          $reportPath = Join-Path $PWD "dist/smoke_report.json"
+          $report = Get-Content -Raw -Encoding utf8 $reportPath | ConvertFrom-Json
+          if (-not $report.ok -or -not $report.frozen) {
+            throw "The packaged desktop pet smoke report is not successful."
+          }
+
+      - name: Build self-contained image generator
+        shell: pwsh
+        run: |
+          $index = (Resolve-Path "web/index.html").Path
+          python -m PyInstaller --noconfirm --clean --onefile `
+            --name Photo2Pet-Generator --paths . `
+            --add-data "$index;web" `
+            --distpath dist --workpath build/generator --specpath build/generator `
+            web/app.py
+
+      - name: Smoke test image generator executable
+        shell: pwsh
+        run: |
+          $temp = Join-Path $PWD "build/generator-temp"
+          New-Item -ItemType Directory -Force -Path $temp | Out-Null
+          $env:TEMP = $temp
+          $env:TMP = $temp
+          $exe = Join-Path $PWD "dist/Photo2Pet-Generator.exe"
+          & $exe --smoke-test
+          if ($LASTEXITCODE -ne 0) {
+            throw "The packaged generator smoke test failed."
+          }
+
       - name: Pack portable zip
         shell: pwsh
         run: |
           $name = $env:EXE_NAME
           $zip = "dist/$name-portable.zip"
-          Compress-Archive -Path "dist/$name.exe", "使用说明.txt", "README.md", "LICENSE", "NOTICE" -DestinationPath $zip -Force
+          Compress-Archive -Path "dist/$name.exe", "dist/Photo2Pet-Generator.exe", "使用说明.txt", "README.md", "LICENSE", "NOTICE" -DestinationPath $zip -Force
           $hash = (Get-FileHash -Algorithm SHA256 $zip).Hash.ToLowerInvariant()
           "$hash  $([System.IO.Path]::GetFileName($zip))" | Set-Content -Encoding ascii "$zip.sha256"
           Get-ChildItem -LiteralPath dist | Select-Object Name, Length

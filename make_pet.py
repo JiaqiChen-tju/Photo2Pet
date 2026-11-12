@@ -482,12 +482,14 @@ def preview_sheet(frames, cell_max=(134, 238)):
     cell_h = max(t.height for t in thumbs) + pad
     board_w = cols * cell_w + pad
     board_h = rows * cell_h + pad
-    board = Image.new("RGB", (board_w, board_h), (255, 0, 255))
+    checker_base = (245, 247, 245)
+    checker_cell = (225, 232, 226)
+    board = Image.new("RGB", (board_w, board_h), checker_base)
     d = ImageDraw.Draw(board)
     for y in range(0, board_h, 16):
         for x in range(0, board_w, 16):
             if ((x // 16) + (y // 16)) % 2 == 0:
-                d.rectangle([x, y, x + 15, y + 15], fill=(0, 170, 0))
+                d.rectangle([x, y, x + 15, y + 15], fill=checker_cell)
     for i, thumb in enumerate(thumbs):
         cx = pad + (i % cols) * cell_w + (cell_w - pad - thumb.width) // 2
         cy = pad + (i // cols) * cell_h + (cell_h - pad - thumb.height) // 2
@@ -516,7 +518,7 @@ def write_pet_launcher(out_dir):
             'set "ASSET_DIR=%~dp0"\n'
             'set "PET_EXE="\n'
             'for %%E in ("%~dp0*.exe" "%~dp0..\\*.exe") do (\n'
-            '  if exist "%%~fE" if not defined PET_EXE set "PET_EXE=%%~fE"\n'
+            '  if exist "%%~fE" if /I not "%%~nE"=="Photo2Pet-Generator" if not defined PET_EXE set "PET_EXE=%%~fE"\n'
             ")\n"
             'if not defined PET_EXE (\n'
             "  echo Cannot find the desktop pet program.\n"
