@@ -43,8 +43,8 @@ jobs:
           $env:TEMP = $temp
           $env:TMP = $temp
           $exe = Join-Path $PWD "dist/$env:EXE_NAME.exe"
-          & $exe --smoke-test
-          if ($LASTEXITCODE -ne 0) {
+          $process = Start-Process -FilePath $exe -ArgumentList @("--smoke-test") -PassThru -Wait
+          if ($process.ExitCode -ne 0) {
             throw "The packaged desktop pet smoke test failed."
           }
           $reportPath = Join-Path $PWD "dist/smoke_report.json"
